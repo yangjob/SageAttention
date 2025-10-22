@@ -28,10 +28,11 @@ HAS_SM80 = False
 HAS_SM86 = False
 HAS_SM89 = False
 HAS_SM90 = False
+HAS_SM100 = False
 HAS_SM120 = False
 
 # Supported NVIDIA GPU architectures.
-SUPPORTED_ARCHS = {"8.0", "8.6", "8.9", "9.0", "12.0"}
+SUPPORTED_ARCHS = {"8.0", "8.6", "8.9", "9.0", "10.0", "12.0"}
 
 # Compiler flags.
 CXX_FLAGS = ["-g", "-O3", "-fopenmp", "-lgomp", "-std=c++17", "-DENABLE_BF16"]
@@ -108,6 +109,8 @@ for capability in compute_capabilities:
         HAS_SM89 = True
     elif capability.startswith("9.0"):
         HAS_SM90 = True
+    elif capability.startswith("10.0"):
+        HAS_SM100 = True
     elif capability.startswith("12.0"):
         HAS_SM120 = True
 
@@ -128,8 +131,10 @@ if HAS_SM80 or HAS_SM86 or HAS_SM89 or HAS_SM90 or HAS_SM120:
     )
     ext_modules.append(qattn_extension)
 
-if HAS_SM89 or HAS_SM120:
-    cflags = NVCC_FLAGS + ["-gencode", f"arch=compute_89,code=sm_89"]
+if HAS_SM89 or HAS_SM100 or HAS_SM120:
+    cflags = NVCC_FLAGS + ["-gencode", f"arch=compute_89,code=sm_89"] \
+        + ["-gencode", f"arch=compute_100,code=sm_100"] \
+        + ["-gencode", f"arch=compute_120,code=sm_120"]
     qattn_extension = CUDAExtension(
         name="sageattention._qattn_sm89",
         sources=[
@@ -171,7 +176,9 @@ cflags = NVCC_FLAGS \
         + ["-gencode", f"arch=compute_80,code=sm_80"] \
         + ["-gencode", f"arch=compute_86,code=sm_86"] \
         + ["-gencode", f"arch=compute_89,code=sm_89"] \
-        + ["-gencode", f"arch=compute_90a,code=sm_90a"]
+        + ["-gencode", f"arch=compute_90a,code=sm_90a"] \
+        + ["-gencode", f"arch=compute_100,code=sm_100"] \
+        + ["-gencode", f"arch=compute_120,code=sm_120"]
 fused_extension = CUDAExtension(
     name="sageattention._fused",
     sources=["csrc/fused/pybind.cpp", "csrc/fused/fused.cu"],
@@ -221,8 +228,8 @@ class BuildExtensionSeparateDir(BuildExtension):
 
 
 setup(
-    name='sageattention', 
-    version='2.2.0',  
+    name='sageattention',
+    version='2.2.0',
     author='SageAttention team',
     license='Apache 2.0 License',
     description='Accurate and efficient plug-and-play low-bit attention.',
